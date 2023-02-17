@@ -20,7 +20,6 @@ export class GoogleOAuth2 {
     return `https://accounts.google.com/o/oauth2/auth?${
       queryString({
         client_id: this.opt.clientId,
-        client_secret: this.opt.clientSecret,
         redirect_uri: "http://localhost:8080",
         scope: scopes.join(" "),
         response_type: "code",
