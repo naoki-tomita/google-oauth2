@@ -23,6 +23,8 @@ export class GoogleOAuth2 {
         client_secret: this.opt.clientSecret,
         redirect_uri: "http://localhost:8080",
         scope: scopes.join(" "),
+        response_type: "code",
+        access_type: "offline"
       })
     }`;
   }
