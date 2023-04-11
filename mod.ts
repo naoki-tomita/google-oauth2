@@ -74,7 +74,8 @@ export class GoogleOAuth2 {
       const response = await this.waitForCode();
       await proc.status();
 
-      const token = await this.getAccessTokenByCode(response!.code);
+      const token = await this.getAccessTokenByCode(response.code);
+      proc.close();
       await Deno.writeTextFile(".refreshToken", token.refresh_token);
       return token.access_token;
     }
@@ -83,22 +84,21 @@ export class GoogleOAuth2 {
   async waitForCode() {
     const server = Deno.listen({ port: 8080 });
 
-    for await (const conn of server) {
-      const url = await serveHttp(conn);
-      return url?.split("?")[1].split("&").map((it) => it.split("=")).reduce(
-        (prev, [k, v]) => ({ ...prev, [k]: v }),
-        {} as { code: string },
-      );
-    }
+    const conn = await server.accept();
+    const httpConn = Deno.serveHttp(conn);
 
-    async function serveHttp(conn: Deno.Conn) {
-      const httpConn = Deno.serveHttp(conn);
-      for await (const requestEvent of httpConn) {
-        requestEvent.respondWith(
-          new Response(`You can close window.`, { status: 200 }),
-        );
-        return requestEvent.request.url;
-      }
-    }
+    const requestEvent = await httpConn.nextRequest();
+    await requestEvent!.respondWith(new Response(`You can close window.`, { status: 200 }));
+    const url = requestEvent!.request.url;
+
+    const queries = url?.split("?")[1].split("&").map((it) => it.split("=")).reduce(
+      (prev, [k, v]) => ({ ...prev, [k]: v }),
+      {} as { code: string },
+    );
+
+    await new Promise(ok => setTimeout(ok, 0)); // wait for next tick for flush http response.
+    httpConn.close();
+    server.close();
+    return queries;
   }
 }
