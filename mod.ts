@@ -70,12 +70,12 @@ export class GoogleOAuth2 {
     } catch {
       const link = this.buildUrl(scopes);
       const os = Deno.build.os;
-      const proc = Deno.run({ cmd: [os === "darwin" ? "open" : "xdg-open", link] });
+      const proc = new Deno.Command(os === "darwin" ? "open" : "xdg-open", { args:[link] });
+      const promise = proc.output();
       const response = await this.waitForCode();
-      await proc.status();
+      await promise;
 
       const token = await this.getAccessTokenByCode(response.code);
-      proc.close();
       await Deno.writeTextFile(".refreshToken", token.refresh_token);
       return token.access_token;
     }
