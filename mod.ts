@@ -81,15 +81,21 @@ export class GoogleOAuth2 {
     }
   }
 
+  async readRequest(connection: Deno.Conn) {
+    const buf = new Uint8Array(4096);
+    await connection.read(buf) ?? 0; // 最後まで読み取ったあと、無限にawaitしちゃうのをどうにかしたい
+    return new TextDecoder().decode(buf);
+  }
+
   async waitForCode() {
-    const server = Deno.listen({ port: 8080 });
+    const listener = Deno.listen({ port: 8080 });
+    const connection = await listener.accept();
+    listener.close();
 
-    const conn = await server.accept();
-    const httpConn = Deno.serveHttp(conn);
-
-    const requestEvent = await httpConn.nextRequest();
-    await requestEvent!.respondWith(new Response(`You can close window.`, { status: 200 }));
-    const url = requestEvent!.request.url;
+    const httpRequest = await this.readRequest(connection);
+    const head = httpRequest.split("\r\n")[0];
+    const result = /GET (.+) HTTP\/1.1/.exec(head);
+    const url = result![1];
 
     const queries = url?.split("?")[1].split("&").map((it) => it.split("=")).reduce(
       (prev, [k, v]) => ({ ...prev, [k]: v }),
@@ -97,8 +103,17 @@ export class GoogleOAuth2 {
     );
 
     await new Promise(ok => setTimeout(ok, 0)); // wait for next tick for flush http response.
-    httpConn.close();
-    server.close();
+    const res = new TextEncoder().encode(HttpResponse);
+    await connection.write(res);
+    connection.close();
     return queries;
   }
 }
+
+
+const HttpResponse = `
+HTTP/1.1 200 OK
+Content-Length: 30
+
+You can close this window now.
+`.trim().replace("\n", "\r\n")
