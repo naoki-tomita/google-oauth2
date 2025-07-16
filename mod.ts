@@ -16,7 +16,7 @@ export class GoogleOAuth2 {
     },
   ) {}
 
-  buildUrl(scopes: string[]) {
+  private buildUrl(scopes: string[]) {
     return `https://accounts.google.com/o/oauth2/auth?${
       queryString({
         client_id: this.opt.clientId,
@@ -28,7 +28,7 @@ export class GoogleOAuth2 {
     }`;
   }
 
-  getAccessTokenByRefreshToken(
+  private getAccessTokenByRefreshToken(
     refreshToken: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     return fetch("https://www.googleapis.com/oauth2/v4/token", {
@@ -46,7 +46,7 @@ export class GoogleOAuth2 {
       .then((it) => it.json());
   }
 
-  getAccessTokenByCode(
+  private getAccessTokenByCode(
     code: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     return fetch("https://accounts.google.com/o/oauth2/token", {
@@ -62,7 +62,7 @@ export class GoogleOAuth2 {
     }).then((it) => it.json());
   }
 
-  async getAccessToken(scopes: string[]) {
+  async getAccessToken(scopes: string[]): Promise<string> {
     try {
       return await Deno.readTextFile(".refreshToken")
         .then((it) => this.getAccessTokenByRefreshToken(it))
@@ -81,13 +81,13 @@ export class GoogleOAuth2 {
     }
   }
 
-  async readRequest(connection: Deno.Conn) {
+  private async readRequest(connection: Deno.Conn) {
     const buf = new Uint8Array(4096);
     await connection.read(buf) ?? 0; // 最後まで読み取ったあと、無限にawaitしちゃうのをどうにかしたい
     return new TextDecoder().decode(buf);
   }
 
-  async waitForCode() {
+  private async waitForCode() {
     const listener = Deno.listen({ port: 8080 });
     const connection = await listener.accept();
     listener.close();

@@ -1,4 +1,4 @@
-import json from "./client_secret.json" assert { type: "json" };
+import json from "./client_secret.json" with { type: "json" };
 import { GoogleOAuth2 } from "./mod.ts";
 
 Deno.test("should create .refreshToken file", async () => {
