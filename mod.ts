@@ -8,6 +8,9 @@ function queryString(obj: { [key: string]: string }) {
   ).replace("&", "");
 }
 
+/**
+ * Google OAuth2 client for Deno.
+ */
 export class GoogleOAuth2 {
   constructor(
     readonly opt: {
@@ -18,13 +21,13 @@ export class GoogleOAuth2 {
 
   private buildUrl(scopes: string[]) {
     return `https://accounts.google.com/o/oauth2/auth?${
-      queryString({
+      new URLSearchParams({
         client_id: this.opt.clientId,
         redirect_uri: "http://localhost:8080",
         scope: scopes.join(" "),
         response_type: "code",
         access_type: "offline"
-      })
+      }).toString()
     }`;
   }
 
@@ -62,6 +65,16 @@ export class GoogleOAuth2 {
     }).then((it) => it.json());
   }
 
+  /**
+   * Get access token from Google OAuth2.
+   * This method will open a browser window to request user authorization.
+   * If the user has already authorized the application, it will use the refresh token stored in `.refreshToken` file.
+   * If the file does not exist, it will request the user to authorize the application and store the refresh token in `.refreshToken`.
+   * `.refreshToken` file should be created in the current working directory.
+   * `.refreshToken` file should not be committed to the repository. To avoid this, you can add `.refreshToken` to your `.gitignore` file.
+   * @param scopes The scopes to request.
+   * @returns The access token.
+   */
   async getAccessToken(scopes: string[]): Promise<string> {
     try {
       return await Deno.readTextFile(".refreshToken")
